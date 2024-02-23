@@ -20,14 +20,19 @@ fn main(){
 
     //challenge 3
     let hex = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
-    let (result, key) = functions::crack_xor(hex);
+    let (result, key) = functions::crack_single_xor(hex);
     let raw_data = functions::get_raw_data(hex);
     println!("\nSet 1, Challenge 3\n Hex = {}\t Raw = {:#?}\n Key = {}\t Plaintext = {}\n", hex, raw_data, key as char, result);
 
     //challenge 4
     let path = "./data/challenge4.txt";
-    let (hex, result, key) = functions::detect_xor(path);
+    let (hex, result, key) = functions::detect_single_xor(path);
     let raw_data = functions::get_raw_data(&hex);
     println!("\nSet 1, Challenge 4\n Hex = {}\t Raw = {:#?}\n Key = {}\t Plaintext = {:#?}\n", hex, raw_data, key as char, result);
 
+    //challenge 5
+    let plaintext: &str = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal";
+    let key: &str = "ICE";
+    let result = functions::repeating_key_xor(plaintext, key);
+    println!("\nSet 1, Challenge 5\n Plaintext = {:#?}\n Key = {}\n Cipher = {:#?}\n", plaintext, key, result);
 }
