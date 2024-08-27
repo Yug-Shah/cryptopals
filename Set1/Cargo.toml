@@ -1,9 +1,9 @@
 [package]
-name = "crypto_pal"
+name = "set1"
 version = "0.1.0"
 authors = ["Yug Shah <yugscontact@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-base64 = "0.21.7"
+base64 = "0.22.1"
 hex = "0.4.3"

@@ -10,7 +10,7 @@ Solving the [cryptopals challenges](https://cryptopals.com/) and learning progra
 - [X] Challenge 3: Single-byte XOR cipher
 - [X] Challenge 4: Detect single-character XOR
 - [X] Challenge 5: Implement repeating-key XOR
-- [ ] Challenge 6: Break repeating-key XOR
+- [X] Challenge 6: Break repeating-key XOR
 - [ ] Challenge 7: AES in ECB mode
 - [ ] Challenge 8: Detect AES in ECB mode
 
