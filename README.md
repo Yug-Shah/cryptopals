@@ -1,4 +1,4 @@
-# cryptoPals
+# cryptopals
 Solving the [cryptopals challenges](https://cryptopals.com/) and learning programming in Rust
 
 ## Challenges

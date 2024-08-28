@@ -56,7 +56,7 @@ pub fn challenge_3() {
 }
 
 pub fn challenge_4() {
-    let path = "./data/challenge4.txt";
+    let path = "Set1/data/challenge4.txt";
     let expected_key = b'5';
     let file_reader = BufReader::new(File::open(path).expect("Error in opening the file"));
 
@@ -99,7 +99,7 @@ pub fn challenge_5() {
 }
 
 pub fn challenge_6() {
-    let path = "./data/challenge6.txt";
+    let path = "Set1/data/challenge6.txt";
     let expected_key = "Terminator X: Bring the noise";
     let ciphertext_bytes = b64_to_bytes(&fs::read_to_string(path)
         .unwrap()
