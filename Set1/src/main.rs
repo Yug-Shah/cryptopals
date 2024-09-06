@@ -11,4 +11,5 @@ fn main(){
     challenge_4();
     challenge_5();
     challenge_6();
+    challenge_7();
 }

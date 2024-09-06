@@ -118,3 +118,25 @@ pub fn challenge_6() {
     println!(" Key = {}\n", key);
     // println!(" Plaintext = \n{}", plaintext);
 }
+
+pub fn challenge_7() {
+    let path = "Set1/data/challenge7.txt";
+    let ciphertext_bytes = b64_to_bytes(&fs::read_to_string(path)
+        .unwrap()
+        .split('\n')
+        .collect::<Vec<_>>()
+        .join(""));
+    // The start of the plaintext is the following line.
+    let expected_plaintext = "I'm back and I'm ringin' the bell ";
+
+    let key = "YELLOW SUBMARINE";
+    let key_bytes = key.as_bytes();
+
+    let plaintext_bytes = decrypt_aes_ecb_128(key_bytes, &ciphertext_bytes).unwrap();
+    let plaintext = bytes_to_plaintext(&plaintext_bytes);
+    assert!(plaintext.contains(expected_plaintext));
+
+    println!("Challenge 7 completed");
+    // Plaintext is long, uncomment below to print
+    // println!(" Plaintext = \n{}", plaintext);
+}

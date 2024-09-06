@@ -1,4 +1,5 @@
 use base64::{engine::general_purpose, Engine};
+use openssl::{error::ErrorStack, symm::{decrypt, Cipher}};
 
 const LETTER_FREQ: [f64; 27] = [
     0.08167, 0.01492, 0.02782, 0.04253, 0.12702, 0.02228, 0.02015, // A-G
@@ -145,6 +146,10 @@ pub fn break_repeating_key_xor(keysize: usize, ciphertext_bytes: Vec<u8>) -> (Ve
     let plaintext = bytes_to_plaintext(&fixed_xor(&ciphertext_bytes, &repeated_key));
 
     (key_bytes, plaintext)
+}
+
+pub fn decrypt_aes_ecb_128(key_bytes: &[u8],ciphertext_bytes: &[u8]) -> Result<Vec<u8>, ErrorStack> {
+    decrypt(Cipher::aes_128_ecb(), key_bytes, None, &ciphertext_bytes)
 }
 
 #[test]
