@@ -1,5 +1,14 @@
 # cryptopals
+
 Solving the [cryptopals challenges](https://cryptopals.com/) and learning programming in Rust
+
+## How to Run
+
+To run the entire set of challenges at once:
+```
+cd cryptopals
+cargo run --bin set<K> (replace K with set number 1,2, ... 8)
+```
 
 ## Challenges
 

@@ -1,4 +1,5 @@
-use crate::functions::*;
+mod utils;
+use crate::utils::*;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
@@ -56,7 +57,7 @@ pub fn challenge_3() {
 }
 
 pub fn challenge_4() {
-    let path = "Set1/src/data/challenge4.txt";
+    let path = "set1/src/data/challenge4.txt";
     let expected_key = b'5';
     let file_reader = BufReader::new(File::open(path).expect("Error in opening the file"));
 
@@ -99,7 +100,7 @@ pub fn challenge_5() {
 }
 
 pub fn challenge_6() {
-    let path = "Set1/src/data/challenge6.txt";
+    let path = "set1/src/data/challenge6.txt";
     let expected_key = "Terminator X: Bring the noise";
     let ciphertext_bytes = b64_to_bytes(&open_file_to_string(path));
 
@@ -116,7 +117,7 @@ pub fn challenge_6() {
 }
 
 pub fn challenge_7() {
-    let path = "Set1/src/data/challenge7.txt";
+    let path = "set1/src/data/challenge7.txt";
     let ciphertext_bytes = b64_to_bytes(&open_file_to_string(path));
     // The start of the plaintext is the following line.
     let expected_plaintext = "I'm back and I'm ringin' the bell ";
@@ -134,7 +135,7 @@ pub fn challenge_7() {
 }
 
 pub fn challenge_8() {
-    let path = "Set1/src/data/challenge8.txt";
+    let path = "set1/src/data/challenge8.txt";
     let file_reader = BufReader::new(File::open(path).expect("Error in opening the file"));
     let expected_ciphertext = "d880619740a8a19b7840a8a31c810a3d08649af70dc06f4fd5d2d69c744cd283e2dd052f6b641dbf9d11b0348542bb5708649af70dc06f4fd5d2d69c744cd2839475c9dfdbc1d46597949d9c7e82bf5a08649af70dc06f4fd5d2d69c744cd28397a93eab8d6aecd566489154789a6b0308649af70dc06f4fd5d2d69c744cd283d403180c98c8f6db1f2a3f9c4040deb0ab51b29933f2c123c58386b06fba186a";
 
@@ -150,4 +151,17 @@ pub fn challenge_8() {
             println!(" Ciphertext = {}", bytes_to_hex(&ciphertext_bytes));
         }
     }
+}
+
+fn main(){
+    println!("Set 1\n");
+
+    challenge_1();
+    challenge_2();
+    challenge_3();
+    challenge_4();
+    challenge_5();
+    challenge_6();
+    challenge_7();
+    challenge_8();
 }
