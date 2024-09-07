@@ -11,10 +11,10 @@ Solving the [cryptopals challenges](https://cryptopals.com/) and learning progra
 - [X] Challenge 4: Detect single-character XOR
 - [X] Challenge 5: Implement repeating-key XOR
 - [X] Challenge 6: Break repeating-key XOR
-- [ ] Challenge 7: AES in ECB mode
-- [ ] Challenge 8: Detect AES in ECB mode
+- [X] Challenge 7: AES in ECB mode
+- [X] Challenge 8: Detect AES in ECB mode
 
-<!-- ### Set 2 - Block Crypto
+### Set 2 - Block Crypto
 
 - [] Challenge 9: Implement PKCS#7 padding
 - [] Challenge 10: Implement CBC mode
@@ -25,7 +25,7 @@ Solving the [cryptopals challenges](https://cryptopals.com/) and learning progra
 - [] Challenge 15: PKCS#7 padding validation
 - [] Challenge 16: CBC bitflipping attacks
 
-### Set 3 - Block and Stream Crypto
+<!-- ### Set 3 - Block and Stream Crypto
 
 - [] Challenge 17: The CBC padding oracle
 - [] Challenge 18: Implement CTR, the stream cipher mode
