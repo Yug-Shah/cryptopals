@@ -5,3 +5,4 @@ authors = ["Yug Shah <yugscontact@gmail.com>"]
 edition = "2021"
 
 [dependencies]
+utils = { path = "../utils" }

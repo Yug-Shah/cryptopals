@@ -1,8 +1,10 @@
 [package]
-name = "set1"
+name = "utils"
 version = "0.1.0"
 authors = ["Yug Shah <yugscontact@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-utils = { path = "../utils" }
+base64 = "0.22.1"
+hex = "0.4.3"
+openssl = "0.10.66"

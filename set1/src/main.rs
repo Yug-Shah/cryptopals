@@ -1,5 +1,4 @@
-mod utils;
-use crate::utils::*;
+use utils::*;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 

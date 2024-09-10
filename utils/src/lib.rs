@@ -1,7 +1,8 @@
 use std::{collections::HashSet, fs};
-
 use base64::{engine::general_purpose, Engine};
 use openssl::{error::ErrorStack, symm::{decrypt, Cipher}};
+
+// Always operate on raw bytes, never on encoded strings. Only use hex and base64 for pretty-printing.
 
 const LETTER_FREQ: [f64; 27] = [
     0.08167, 0.01492, 0.02782, 0.04253, 0.12702, 0.02228, 0.02015, // A-G
@@ -165,6 +166,12 @@ pub fn detect_aes_ecb(ciphertext_bytes: &[u8]) -> usize {
     blocks.len() - unique_blocks.len()
 }
 
+pub fn pkcs7_padding(block_size: u8, input_text: &[u8]) -> Vec<u8> {
+    let padding_size = block_size - (input_text.len() % block_size as usize) as u8;
+    let pad = vec![padding_size; padding_size as usize];
+    [input_text, &pad].concat()
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -186,5 +193,18 @@ mod tests {
         let expected_blocks = 3;
         let repeated_blocks = detect_aes_ecb(&hex_to_bytes(&ciphertext));
         assert_eq!(repeated_blocks, expected_blocks);
+    }
+
+    #[test]
+    fn test_pkcs7_padding() {
+        let test_size_1 = 16;
+        let test_size_2 =32;
+        let test_1 = "YELLOW SUB";
+        let test_2 = "YELLOW SUBMARINE";
+
+        let expected_output_1 = "YELLOW SUB\x06\x06\x06\x06\x06\x06";
+        let expected_output_2 = "YELLOW SUBMARINE\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10";
+        assert_eq!(expected_output_1, bytes_to_plaintext(&pkcs7_padding(test_size_1, test_1.as_bytes())));
+        assert_eq!(expected_output_2, bytes_to_plaintext(&pkcs7_padding(test_size_2, test_2.as_bytes())));
     }
 }
