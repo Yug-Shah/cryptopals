@@ -124,7 +124,7 @@ pub fn challenge_7() {
     let key = "YELLOW SUBMARINE";
     let key_bytes = key.as_bytes();
 
-    let plaintext_bytes = decrypt_aes_ecb_128(key_bytes, &ciphertext_bytes).unwrap();
+    let plaintext_bytes = aes_ecb_128_decrypt(key_bytes, &ciphertext_bytes);
     let plaintext = bytes_to_plaintext(&plaintext_bytes);
     assert!(plaintext.contains(expected_plaintext));
 

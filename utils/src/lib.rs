@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fs};
 use base64::{engine::general_purpose, Engine};
-use openssl::{error::ErrorStack, symm::{decrypt, Cipher}};
+use openssl::{error::ErrorStack, symm::{Cipher, Crypter, Mode}};
 
 // Always operate on raw bytes, never on encoded strings. Only use hex and base64 for pretty-printing.
 
@@ -10,6 +10,8 @@ const LETTER_FREQ: [f64; 27] = [
     0.07507, 0.01929, 0.00095, 0.05987, 0.06327, 0.09056, 0.02758, // O-U
     0.00978, 0.02360, 0.00150, 0.01974, 0.00074, 0.19181, // V-Z & space char
 ];
+
+pub const BLOCK_SIZE: usize = 16;
 
 pub fn hex_to_bytes(hex: &str) -> Vec<u8>{
     hex::decode(hex).unwrap()
@@ -155,8 +157,25 @@ pub fn break_repeating_key_xor(keysize: usize, ciphertext_bytes: Vec<u8>) -> (Ve
     (key_bytes, plaintext)
 }
 
-pub fn decrypt_aes_ecb_128(key_bytes: &[u8],ciphertext_bytes: &[u8]) -> Result<Vec<u8>, ErrorStack> {
-    decrypt(Cipher::aes_128_ecb(), key_bytes, None, &ciphertext_bytes)
+pub fn cipher(t: Cipher, mode: Mode, key: &[u8], iv: Option<&[u8]>, data: &[u8], pad: bool) -> Result<Vec<u8>, ErrorStack> {
+    let mut crypter = Crypter::new(t, mode, key, iv).unwrap();
+    crypter.pad(pad); // Disable padding explicitly
+
+    let mut ciphertext = vec![0; data.len() + t.block_size()];
+    let count = crypter.update(data, &mut ciphertext).unwrap();
+    let rest = crypter.finalize(&mut ciphertext[count..]).unwrap();
+
+    ciphertext.truncate(count + rest); // Truncate to the actual ciphertext size
+    
+    Ok(ciphertext)
+}
+
+pub fn aes_ecb_128_decrypt(key_bytes: &[u8], ciphertext_bytes: &[u8]) -> Vec<u8> {
+    cipher(Cipher::aes_128_ecb(), Mode::Decrypt, key_bytes, None, &ciphertext_bytes, false).unwrap()
+}
+
+pub fn aes_ecb_128_encrypt(key_bytes: &[u8], plaintext_bytes: &[u8]) -> Vec<u8> {
+    cipher(Cipher::aes_128_ecb(), Mode::Encrypt, key_bytes, None, &plaintext_bytes, false).unwrap()
 }
 
 pub fn detect_aes_ecb(ciphertext_bytes: &[u8]) -> usize {
@@ -166,10 +185,68 @@ pub fn detect_aes_ecb(ciphertext_bytes: &[u8]) -> usize {
     blocks.len() - unique_blocks.len()
 }
 
-pub fn pkcs7_padding(block_size: u8, input_text: &[u8]) -> Vec<u8> {
-    let padding_size = block_size - (input_text.len() % block_size as usize) as u8;
+pub fn pkcs7_padding(block_size: u8, plaintext_bytes: &[u8]) -> Vec<u8> {
+    if block_size == 0 {
+        panic!("Block size cannot be zero");
+    }
+    let padding_size = block_size - (plaintext_bytes.len() % block_size as usize) as u8;
     let pad = vec![padding_size; padding_size as usize];
-    [input_text, &pad].concat()
+    [plaintext_bytes, &pad].concat()
+}
+
+pub fn remove_pkcs7_padding(plaintext_bytes: &[u8]) -> Vec<u8> {
+    if plaintext_bytes.is_empty() {
+        panic!("Cannot remove padding from an empty plaintext.");
+    }
+    let padding_size = *plaintext_bytes.last().unwrap() as usize;
+    if padding_size == 0 || padding_size > plaintext_bytes.len() {
+        panic!("Invalid PKCS#7 padding size.");
+    }
+    for &byte in &plaintext_bytes[plaintext_bytes.len() - padding_size..] {
+        if byte as usize != padding_size {
+            panic!("Invalid PKCS#7 padding.");
+        }
+    }
+
+    plaintext_bytes[..plaintext_bytes.len() - padding_size].to_vec()
+}
+
+pub fn aes_cbc_128_encrypt(key_bytes: &[u8], iv: &[u8], plaintext_bytes: &[u8]) -> Vec<u8> {
+    let padded = pkcs7_padding(BLOCK_SIZE as u8, plaintext_bytes);
+    let mut padded_blocks = Vec::new();
+    for chunk in padded.chunks(BLOCK_SIZE){
+        padded_blocks.push(chunk.to_vec());
+    }
+
+    let mut ciphertext: Vec<u8> = Vec::with_capacity(padded.len());
+    let mut next_iv = iv.to_vec();
+
+    for block in padded_blocks {
+        let ciphertext_block = aes_ecb_128_encrypt(key_bytes, &fixed_xor(&next_iv, &block));
+        next_iv = ciphertext_block.clone();
+        ciphertext.extend_from_slice(&ciphertext_block);
+    }
+
+    ciphertext
+}
+
+pub fn aes_cbc_128_decrypt(key_bytes: &[u8], iv: &[u8], ciphertext_bytes: &[u8]) -> Vec<u8> {
+    let mut ciphertext_blocks = Vec::new();
+    for chunk in ciphertext_bytes.chunks(BLOCK_SIZE){
+        ciphertext_blocks.push(chunk.to_vec());
+    }
+
+    let mut plaintext: Vec<u8> = Vec::new();
+    let mut next_iv = iv.to_vec();
+
+    for block in ciphertext_blocks {
+        let mut plaintext_block = aes_ecb_128_decrypt(key_bytes, &block.to_vec());
+        plaintext_block = fixed_xor(&next_iv, &plaintext_block);
+        next_iv = block;
+        plaintext.extend_from_slice(&plaintext_block);
+    }
+
+    remove_pkcs7_padding(&plaintext)
 }
 
 
@@ -202,9 +279,41 @@ mod tests {
         let test_1 = "YELLOW SUB";
         let test_2 = "YELLOW SUBMARINE";
 
+        //Padding
         let expected_output_1 = "YELLOW SUB\x06\x06\x06\x06\x06\x06";
         let expected_output_2 = "YELLOW SUBMARINE\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10";
         assert_eq!(expected_output_1, bytes_to_plaintext(&pkcs7_padding(test_size_1, test_1.as_bytes())));
         assert_eq!(expected_output_2, bytes_to_plaintext(&pkcs7_padding(test_size_2, test_2.as_bytes())));
+        
+        //Remove Padding
+        let expected_output_3 = "YELLOW SUB";
+        let expected_output_4 = "YELLOW SUBMARINE";
+        assert_eq!(expected_output_3, bytes_to_plaintext(&remove_pkcs7_padding(expected_output_1.as_bytes())));
+        assert_eq!(expected_output_4, bytes_to_plaintext(&remove_pkcs7_padding(expected_output_2.as_bytes())));
+    }
+
+    #[test]
+    fn test_aes_ecb_mode() {
+        let input_plaintext = "YELLOW SUBMARINE";
+        let key = "YELLOW SUBMARINE";
+
+        let output_ciphertext = aes_ecb_128_encrypt(key.as_bytes(), input_plaintext.as_bytes());
+        let output_plaintext = aes_ecb_128_decrypt(key.as_bytes(), &output_ciphertext);
+
+        assert_eq!(input_plaintext, bytes_to_plaintext(&output_plaintext));
+    }
+    
+    #[test]
+    fn test_aes_cbc_mode() {
+        let input_plaintext = "This is the test string";
+        let key = "YELLOW SUBMARINE";
+        let iv = vec![0_u8; BLOCK_SIZE];
+
+        let output_ciphertext = aes_cbc_128_encrypt(key.as_bytes(), &iv,input_plaintext.as_bytes());
+        let output_plaintext = aes_cbc_128_decrypt(key.as_bytes(), &iv, &output_ciphertext);
+
+        let result_plaintext = bytes_to_plaintext(&output_plaintext);
+
+        assert_eq!(input_plaintext, result_plaintext);
     }
 }
