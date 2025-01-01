@@ -1,6 +1,7 @@
 use std::{collections::HashSet, fs};
 use base64::{engine::general_purpose, Engine};
 use openssl::{error::ErrorStack, symm::{Cipher, Crypter, Mode}};
+use rand::{distributions::Standard, thread_rng, Rng};
 
 // Always operate on raw bytes, never on encoded strings. Only use hex and base64 for pretty-printing.
 
@@ -179,18 +180,17 @@ pub fn aes_ecb_128_encrypt(key_bytes: &[u8], plaintext_bytes: &[u8]) -> Vec<u8> 
 }
 
 pub fn detect_aes_ecb(ciphertext_bytes: &[u8]) -> usize {
-    let block_size = 16;
-    let blocks = ciphertext_bytes.chunks(block_size);
+    let blocks = ciphertext_bytes.chunks(BLOCK_SIZE);
     let unique_blocks: HashSet<&[u8]> = HashSet::from_iter(blocks.clone());
     blocks.len() - unique_blocks.len()
 }
 
-pub fn pkcs7_padding(block_size: u8, plaintext_bytes: &[u8]) -> Vec<u8> {
+pub fn pkcs7_padding(block_size: usize, plaintext_bytes: &[u8]) -> Vec<u8> {
     if block_size == 0 {
         panic!("Block size cannot be zero");
     }
-    let padding_size = block_size - (plaintext_bytes.len() % block_size as usize) as u8;
-    let pad = vec![padding_size; padding_size as usize];
+    let padding_size = block_size - (plaintext_bytes.len() % block_size);
+    let pad = vec![padding_size as u8; padding_size];
     [plaintext_bytes, &pad].concat()
 }
 
@@ -212,7 +212,7 @@ pub fn remove_pkcs7_padding(plaintext_bytes: &[u8]) -> Vec<u8> {
 }
 
 pub fn aes_cbc_128_encrypt(key_bytes: &[u8], iv: &[u8], plaintext_bytes: &[u8]) -> Vec<u8> {
-    let padded = pkcs7_padding(BLOCK_SIZE as u8, plaintext_bytes);
+    let padded = pkcs7_padding(BLOCK_SIZE, plaintext_bytes);
     let mut padded_blocks = Vec::new();
     for chunk in padded.chunks(BLOCK_SIZE){
         padded_blocks.push(chunk.to_vec());
@@ -249,6 +249,36 @@ pub fn aes_cbc_128_decrypt(key_bytes: &[u8], iv: &[u8], ciphertext_bytes: &[u8])
     remove_pkcs7_padding(&plaintext)
 }
 
+pub fn generate_random_bytes(size: usize)-> Vec<u8>{
+    thread_rng().sample_iter(Standard).take(size).collect()
+}
+
+pub fn aes_encryption_oracle(plaintext_bytes: &[u8]) -> (Vec<u8>, String) {
+    let mut rng = thread_rng();
+    let key_bytes = generate_random_bytes(BLOCK_SIZE);
+    let prepend = generate_random_bytes(rng.gen_range(5..=10));
+    let append = generate_random_bytes(rng.gen_range(5..=10));
+
+    let modified_plaintext_bytes = [prepend, plaintext_bytes.to_vec(), append].concat();
+
+    let padded_plaintext_bytes = pkcs7_padding(BLOCK_SIZE, &modified_plaintext_bytes);
+
+    if rng.gen_bool(0.5){
+        (aes_ecb_128_encrypt(&key_bytes, &padded_plaintext_bytes), "ECB".to_string())
+    } else  {
+        let iv = generate_random_bytes(BLOCK_SIZE);
+        (aes_cbc_128_encrypt(&key_bytes, &iv, &padded_plaintext_bytes), "CBC".to_string())
+    }
+}
+
+pub fn detect_aes_mode(ciphertext_bytes: &[u8]) -> String {
+    let repeated_blocks = detect_aes_ecb(&ciphertext_bytes);
+    if repeated_blocks > 0 {
+        "ECB".to_string()
+    } else {
+        "CBC".to_string()
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -315,5 +345,17 @@ mod tests {
         let result_plaintext = bytes_to_plaintext(&output_plaintext);
 
         assert_eq!(input_plaintext, result_plaintext);
+    }
+
+
+    #[test]
+    fn test_detect_aes_mode(){
+        let plaintext_bytes = b"000000000000000000000000000000000000000000000000";
+        let (ciphertext_bytes, actual_mode) = aes_encryption_oracle(plaintext_bytes);
+        let detected_mode = detect_aes_mode(&ciphertext_bytes);
+
+        println!(" Actual Mode = {}\n Detected Mode = {}\n", actual_mode, detected_mode);
+
+        assert_eq!(actual_mode, detected_mode);
     }
 }

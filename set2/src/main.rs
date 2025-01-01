@@ -30,9 +30,26 @@ pub fn challenge_10() {
 
 }
 
+pub fn challenge_11() {
+    //We need atleast 3 blocks of data to detect ECB mode, due to the random prepend and append of data to the plaintext blocks.
+    let plaintext_bytes_1 = b"000000000000000000000000000000000000000000000000";
+    let (ciphertext_bytes_1, actual_mode_1) = aes_encryption_oracle(plaintext_bytes_1);
+    let detected_mode_1 = detect_aes_mode(&ciphertext_bytes_1);
+    assert_eq!(actual_mode_1, detected_mode_1);
+
+    let path = "set2/src/data/challenge10.txt";
+    let ciphertext_bytes_2 = b64_to_bytes(&open_file_to_string(path));
+    let actual_mode_2 = "CBC".to_string();
+    let detected_mode_2 = detect_aes_mode(&ciphertext_bytes_2);
+    assert_eq!(actual_mode_2, detected_mode_2);
+
+    println!("Challenge 11 completed\n");
+}
+
 fn main(){
     println!("Set 2\n");
 
     challenge_9();
     challenge_10();
+    challenge_11();
 }
